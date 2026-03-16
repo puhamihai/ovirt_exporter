@@ -12,7 +12,9 @@ import (
 	"strings"
 
 	"github.com/czerwonk/ovirt_api/api"
+	"github.com/czerwonk/ovirt_exporter/pkg/cluster"
 	"github.com/czerwonk/ovirt_exporter/pkg/collector"
+	"github.com/czerwonk/ovirt_exporter/pkg/datacenter"
 	"github.com/czerwonk/ovirt_exporter/pkg/host"
 	"github.com/czerwonk/ovirt_exporter/pkg/storagedomain"
 	"github.com/czerwonk/ovirt_exporter/pkg/vm"
@@ -37,6 +39,8 @@ var (
 	withVMs                  = flag.Bool("with-vms", true, "Collect VM metrics")
 	withHosts                = flag.Bool("with-hosts", true, "Collect host metrics")
 	withStorageDomains       = flag.Bool("with-storage-domains", true, "Collect storage domain metrics")
+	withDataCenters          = flag.Bool("with-datacenters", true, "Collect data center metrics")
+	withClusters             = flag.Bool("with-clusters", true, "Collect cluster metrics")
 	withSnapshots            = flag.Bool("with-snapshots", true, "Collect snapshot metrics (can be time consuming in some cases)")
 	withNetwork              = flag.Bool("with-network", true, "Collect network metrics (can be time consuming in some cases)")
 	withDisks                = flag.Bool("with-disks", true, "Collect disk metrics (can be time consuming in some cases)")
@@ -184,6 +188,12 @@ func handleMetricsRequest(w http.ResponseWriter, r *http.Request, client *api.Cl
 	}
 	if *withStorageDomains {
 		reg.MustRegister(storagedomain.NewCollector(ctx, cc.Clone(), collectorDuration.WithLabelValues("storage")))
+	}
+	if *withDataCenters {
+		reg.MustRegister(datacenter.NewCollector(ctx, cc.Clone(), collectorDuration.WithLabelValues("datacenter")))
+	}
+	if *withClusters {
+		reg.MustRegister(cluster.NewCollector(ctx, cc.Clone(), collectorDuration.WithLabelValues("cluster")))
 	}
 
 	multiRegs := prometheus.Gatherers{
