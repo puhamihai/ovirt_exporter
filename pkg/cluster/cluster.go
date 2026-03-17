@@ -16,8 +16,8 @@ type Cluster struct {
 		ID string `xml:"id,attr"`
 	} `xml:"data_center"`
 	Version struct {
-		Major int `xml:"major,attr"`
-		Minor int `xml:"minor,attr"`
+		Major int `xml:"major"`
+		Minor int `xml:"minor"`
 	} `xml:"version"`
 	BallooningEnabled bool `xml:"ballooning_enabled"`
 	KSM               struct {
@@ -31,4 +31,6 @@ type Cluster struct {
 	FencingPolicy struct {
 		Enabled bool `xml:"enabled"`
 	} `xml:"fencing_policy"`
+	HAReservation     bool `xml:"ha_reservation"`
+	UpgradeInProgress bool `xml:"upgrade_in_progress"`
 }
