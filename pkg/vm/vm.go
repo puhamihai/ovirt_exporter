@@ -25,5 +25,16 @@ type VM struct {
 			Threads int `xml:"threads"`
 		} `xml:"topology"`
 	} `xml:"cpu"`
-	HasIllegalImages bool `xml:"has_illegal_images"`
+	HasIllegalImages       bool `xml:"has_illegal_images"`
+	HighAvailability struct {
+		Enabled bool `xml:"enabled"`
+	} `xml:"high_availability"`
+	GuestOperatingSystem struct {
+		Family  string `xml:"family"`
+		Version struct {
+			Full string `xml:"full_version"`
+		} `xml:"version"`
+	} `xml:"guest_operating_system"`
+	NextRunConfigurationExists bool   `xml:"next_run_configuration_exists"`
+	Fqdn                       string `xml:"fqdn"`
 }

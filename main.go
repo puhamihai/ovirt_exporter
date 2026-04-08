@@ -23,7 +23,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const version string = "0.10.2"
+const version string = "0.11.0"
 
 var (
 	showVersion              = flag.Bool("version", false, "Print version information.")
@@ -34,6 +34,11 @@ var (
 	apiPass                  = flag.String("api.password", "", "API password")
 	apiPassFile              = flag.String("api.password-file", "", "File containing the API password")
 	apiInsecureCert          = flag.Bool("api.insecure-cert", false, "Skip verification for untrusted SSL/TLS certificates")
+	withVMs                  = flag.Bool("with-vms", true, "Collect VM metrics")
+	withHosts                = flag.Bool("with-hosts", true, "Collect host metrics")
+	withStorageDomains       = flag.Bool("with-storage-domains", true, "Collect storage domain metrics")
+	withDatacenters          = flag.Bool("with-datacenters", true, "Reserved for future use")
+	withClusters             = flag.Bool("with-clusters", true, "Reserved for future use")
 	withSnapshots            = flag.Bool("with-snapshots", true, "Collect snapshot metrics (can be time consuming in some cases)")
 	withNetwork              = flag.Bool("with-network", true, "Collect network metrics (can be time consuming in some cases)")
 	withDisks                = flag.Bool("with-disks", true, "Collect disk metrics (can be time consuming in some cases)")
@@ -173,9 +178,15 @@ func handleMetricsRequest(w http.ResponseWriter, r *http.Request, client *api.Cl
 	reg := prometheus.NewRegistry()
 
 	cc := collector.NewContext(tracer, client)
-	reg.MustRegister(vm.NewCollector(ctx, cc.Clone(), *withSnapshots, *withNetwork, *withDisks, collectorDuration.WithLabelValues("vm")))
-	reg.MustRegister(host.NewCollector(ctx, cc.Clone(), *withNetwork, collectorDuration.WithLabelValues("host")))
-	reg.MustRegister(storagedomain.NewCollector(ctx, cc.Clone(), collectorDuration.WithLabelValues("storage")))
+	if *withVMs {
+		reg.MustRegister(vm.NewCollector(ctx, cc.Clone(), *withSnapshots, *withNetwork, *withDisks, collectorDuration.WithLabelValues("vm")))
+	}
+	if *withHosts {
+		reg.MustRegister(host.NewCollector(ctx, cc.Clone(), *withNetwork, collectorDuration.WithLabelValues("host")))
+	}
+	if *withStorageDomains {
+		reg.MustRegister(storagedomain.NewCollector(ctx, cc.Clone(), collectorDuration.WithLabelValues("storage")))
+	}
 
 	multiRegs := prometheus.Gatherers{
 		reg,
