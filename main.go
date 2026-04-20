@@ -12,7 +12,9 @@ import (
 	"strings"
 
 	"github.com/czerwonk/ovirt_api/api"
+	"github.com/czerwonk/ovirt_exporter/pkg/cluster"
 	"github.com/czerwonk/ovirt_exporter/pkg/collector"
+	"github.com/czerwonk/ovirt_exporter/pkg/datacenter"
 	"github.com/czerwonk/ovirt_exporter/pkg/host"
 	"github.com/czerwonk/ovirt_exporter/pkg/storagedomain"
 	"github.com/czerwonk/ovirt_exporter/pkg/vm"
@@ -23,7 +25,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const version string = "0.12.0"
+const version string = "0.12.1"
 
 var (
 	showVersion              = flag.Bool("version", false, "Print version information.")
@@ -37,8 +39,8 @@ var (
 	withVMs                  = flag.Bool("with-vms", true, "Collect VM metrics")
 	withHosts                = flag.Bool("with-hosts", true, "Collect host metrics")
 	withStorageDomains       = flag.Bool("with-storage-domains", true, "Collect storage domain metrics")
-	withDatacenters          = flag.Bool("with-datacenters", true, "Reserved for future use")
-	withClusters             = flag.Bool("with-clusters", true, "Reserved for future use")
+	withDatacenters          = flag.Bool("with-datacenters", true, "Collect datacenter metrics")
+	withClusters             = flag.Bool("with-clusters", true, "Collect cluster metrics")
 	withVMStats              = flag.Bool("with-vm-stats", true, "Collect per-VM statistics (CPU%, memory%, etc.) - requires 1 API call per VM")
 	withSnapshots            = flag.Bool("with-snapshots", true, "Collect snapshot metrics (can be time consuming in some cases)")
 	withNetwork              = flag.Bool("with-network", true, "Collect network metrics (can be time consuming in some cases)")
@@ -187,6 +189,12 @@ func handleMetricsRequest(w http.ResponseWriter, r *http.Request, client *api.Cl
 	}
 	if *withStorageDomains {
 		reg.MustRegister(storagedomain.NewCollector(ctx, cc.Clone(), collectorDuration.WithLabelValues("storage")))
+	}
+	if *withDatacenters {
+		reg.MustRegister(datacenter.NewCollector(ctx, cc.Clone(), collectorDuration.WithLabelValues("datacenter")))
+	}
+	if *withClusters {
+		reg.MustRegister(cluster.NewCollector(ctx, cc.Clone(), collectorDuration.WithLabelValues("cluster")))
 	}
 
 	multiRegs := prometheus.Gatherers{
