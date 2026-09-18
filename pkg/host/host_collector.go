@@ -22,18 +22,27 @@ const prefix = "ovirt_host_"
 
 var (
 	upDesc               *prometheus.Desc
+	statusDesc           *prometheus.Desc
 	cpuCoresDesc         *prometheus.Desc
 	cpuSocketsDesc       *prometheus.Desc
 	cpuThreadsDesc       *prometheus.Desc
 	cpuSpeedDesc         *prometheus.Desc
 	memoryDesc           *prometheus.Desc
 	labelNames           []string
+	statusLabelNames     []string
 	hostMaintenanceRegex *regexp.Regexp
 )
 
 func init() {
 	labelNames = []string{"name", "cluster"}
 	upDesc = prometheus.NewDesc(prefix+"up", "Host status is up (1) or not (0) or on maintenance (2)", labelNames, nil)
+	// ovirt_host_up collapses every state that is not "up" or maintenance/installing
+	// into 0, so it cannot tell "unassigned" (engine-side state machine wedged, needs
+	// an engine restart) apart from "non_responsive" (host genuinely unreachable).
+	// statusDesc exposes the engine's raw status string as an info metric so alerts
+	// can target a specific state.
+	statusLabelNames = append(append([]string{}, labelNames...), "status")
+	statusDesc = prometheus.NewDesc(prefix+"status", "Raw host status reported by the engine; always 1, with the state in the \"status\" label", statusLabelNames, nil)
 	cpuCoresDesc = prometheus.NewDesc(prefix+"cpu_cores", "Number of CPU cores assigned", labelNames, nil)
 	cpuSocketsDesc = prometheus.NewDesc(prefix+"cpu_sockets", "Number of sockets", labelNames, nil)
 	cpuThreadsDesc = prometheus.NewDesc(prefix+"cpu_threads", "Number of threads", labelNames, nil)
@@ -137,6 +146,7 @@ func (c *HostCollector) collectForHost(ctx context.Context, host Host, wg *sync.
 
 	c.cc.RecordMetrics(
 		c.upMetric(h, l),
+		c.statusMetric(h, l),
 		metric.MustCreate(memoryDesc, float64(host.Memory), l),
 	)
 	c.collectCPUMetrics(h, l)
@@ -172,4 +182,14 @@ func (c *HostCollector) upMetric(host *Host, labelValues []string) prometheus.Me
 	}
 
 	return metric.MustCreate(upDesc, status, labelValues)
+}
+
+// statusMetric emits the engine's raw host status as an info-style metric: the
+// value is always 1 and the state travels in the "status" label, so a rule can
+// match one specific state (e.g. status="unassigned") instead of the lossy
+// ovirt_host_up encoding.
+func (c *HostCollector) statusMetric(host *Host, labelValues []string) prometheus.Metric {
+	l := append(append([]string{}, labelValues...), host.Status)
+
+	return metric.MustCreate(statusDesc, 1, l)
 }
