@@ -4,6 +4,11 @@ on:
       - "v*.*.*"
 
 name: Release
+
+# GoReleaser creates the release and uploads the artifacts.
+permissions:
+  contents: write
+
 jobs:
   goreleaser:
     name: Create Release
@@ -11,6 +16,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          # Required by GoReleaser - it needs the full commit history and tags
+          # to build the changelog. actions/checkout defaults to a shallow
+          # clone, which silently truncates it.
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v6
