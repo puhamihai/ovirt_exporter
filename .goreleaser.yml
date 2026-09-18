@@ -15,3 +15,11 @@ builds:
     - arm64
     ldflags: -s -w -X main.version={{.Version}}
     binary: ovirt_exporter 
+
+release:
+  # Publishing through the GitHub UI ("Draft a new release") creates the tag,
+  # which fires .github/workflows/release.yml - so GoReleaser then runs against
+  # a release that already exists. keep-existing is GoReleaser's current default
+  # for that case, but pin it explicitly so hand-written release notes can never
+  # be clobbered by a change of default: keep the notes, just attach the builds.
+  mode: keep-existing
