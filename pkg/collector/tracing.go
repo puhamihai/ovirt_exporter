@@ -5,7 +5,7 @@ package collector
 import (
 	"context"
 
-	"github.com/czerwonk/ovirt_api/api"
+	"github.com/czerwonk/ovirt_exporter/pkg/api"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -18,12 +18,12 @@ type clientTracingAdapter struct {
 
 // GetAndParse implements Client.GetAndParse
 func (cta *clientTracingAdapter) GetAndParse(ctx context.Context, path string, v interface{}) error {
-	_, span := cta.tracer.Start(ctx, "Client.RunCommandAndParseWithParser", trace.WithAttributes(
+	ctx, span := cta.tracer.Start(ctx, "Client.RunCommandAndParseWithParser", trace.WithAttributes(
 		attribute.String("path", path),
 	))
 	defer span.End()
 
-	err := cta.client.GetAndParse(path, v)
+	err := cta.client.GetAndParse(ctx, path, v)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
