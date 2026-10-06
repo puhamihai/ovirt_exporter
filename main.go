@@ -25,7 +25,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const version string = "0.12.2"
+// version is set at build time by goreleaser (-X main.version={{.Version}}).
+// It must be a var: -X cannot override a const.
+var version = "dev"
 
 var (
 	showVersion              = flag.Bool("version", false, "Print version information.")
