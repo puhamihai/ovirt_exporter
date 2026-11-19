@@ -25,18 +25,21 @@ import (
 const prefix = "ovirt_vm_"
 
 var (
-	upDesc              *prometheus.Desc
-	cpuCoresDesc        *prometheus.Desc
-	cpuSocketsDesc      *prometheus.Desc
-	cpuThreadsDesc      *prometheus.Desc
-	snapshotCount       *prometheus.Desc
-	minSnapshotAge      *prometheus.Desc
-	maxSnapshotAge      *prometheus.Desc
-	illegalImages       *prometheus.Desc
-	diskProvisionedSize *prometheus.Desc
-	diskActualSize      *prometheus.Desc
-	diskTotalSize       *prometheus.Desc
-	labelNames          []string
+	upDesc                  *prometheus.Desc
+	cpuCoresDesc            *prometheus.Desc
+	cpuSocketsDesc          *prometheus.Desc
+	cpuThreadsDesc          *prometheus.Desc
+	snapshotCount           *prometheus.Desc
+	minSnapshotAge          *prometheus.Desc
+	maxSnapshotAge          *prometheus.Desc
+	illegalImages           *prometheus.Desc
+	diskProvisionedSize     *prometheus.Desc
+	diskActualSize          *prometheus.Desc
+	diskTotalSize           *prometheus.Desc
+	haEnabledDesc           *prometheus.Desc
+	guestAgentUpDesc        *prometheus.Desc
+	nextRunConfigExistsDesc *prometheus.Desc
+	labelNames              []string
 )
 
 func init() {
@@ -49,6 +52,9 @@ func init() {
 	maxSnapshotAge = prometheus.NewDesc(prefix+"snapshot_max_age_seconds", "Age of the oldest snapshot in seconds", labelNames, nil)
 	minSnapshotAge = prometheus.NewDesc(prefix+"snapshot_min_age_seconds", "Age of the newest snapshot in seconds", labelNames, nil)
 	illegalImages = prometheus.NewDesc(prefix+"illegal_images", "Health status of the disks attatched to the VM (1 if one or more disk is in illegal state)", labelNames, nil)
+	haEnabledDesc = prometheus.NewDesc(prefix+"ha_enabled", "VM has High Availability enabled (1) or not (0)", labelNames, nil)
+	guestAgentUpDesc = prometheus.NewDesc(prefix+"guest_agent_up", "QEMU guest agent is reporting (1) or not (0)", labelNames, nil)
+	nextRunConfigExistsDesc = prometheus.NewDesc(prefix+"next_run_config_exists", "VM has pending configuration changes requiring reboot (1) or not (0)", labelNames, nil)
 
 	diskLabelNames := append(labelNames, "disk_name", "disk_alias", "disk_logical_name", "storage_domain", "disk_id")
 	diskProvisionedSize = prometheus.NewDesc(prefix+"disk_provisioned_size_bytes", "Provisioned size of the disk in bytes", diskLabelNames, nil)
@@ -62,6 +68,7 @@ type VMCollector struct {
 	cc               *collector.CollectorContext
 	collectDuration  prometheus.Observer
 	metrics          []prometheus.Metric
+	collectStats     bool
 	collectSnapshots bool
 	collectNetwork   bool
 	collectDisks     bool
@@ -70,9 +77,10 @@ type VMCollector struct {
 }
 
 // NewCollector creates a new collector
-func NewCollector(ctx context.Context, cc *collector.CollectorContext, collectSnaphots, collectNetwork bool, collectDisks bool, collectDuration prometheus.Observer) prometheus.Collector {
+func NewCollector(ctx context.Context, cc *collector.CollectorContext, collectStats, collectSnaphots, collectNetwork bool, collectDisks bool, collectDuration prometheus.Observer) prometheus.Collector {
 	return &VMCollector{
 		cc:               cc,
+		collectStats:     collectStats,
 		collectSnapshots: collectSnaphots,
 		collectNetwork:   collectNetwork,
 		collectDisks:     collectDisks,
@@ -158,12 +166,17 @@ func (c *VMCollector) collectForVM(ctx context.Context, vm VM, wg *sync.WaitGrou
 	c.cc.RecordMetrics(
 		c.upMetric(v, l),
 		c.diskImageIllegalMetric(v, l),
+		c.haEnabledMetric(v, l),
+		c.guestAgentUpMetric(v, l),
+		c.nextRunConfigExistsMetric(v, l),
 	)
 
 	c.collectCPUMetrics(v, l)
 
-	statPath := fmt.Sprintf("vms/%s/statistics", vm.ID)
-	statistic.CollectMetrics(ctx, statPath, prefix, labelNames, l, c.cc)
+	if c.collectStats {
+		statPath := fmt.Sprintf("vms/%s/statistics", vm.ID)
+		statistic.CollectMetrics(ctx, statPath, prefix, labelNames, l, c.cc)
+	}
 
 	if c.collectNetwork {
 		networkPath := fmt.Sprintf("vms/%s/nics", vm.ID)
@@ -215,6 +228,33 @@ func (c *VMCollector) diskImageIllegalMetric(vm *VM, labelValues []string) prome
 	}
 
 	return metric.MustCreate(illegalImages, hasIllegalImages, labelValues)
+}
+
+func (c *VMCollector) haEnabledMetric(vm *VM, labelValues []string) prometheus.Metric {
+	var ha float64
+	if vm.HighAvailability.Enabled {
+		ha = 1
+	}
+
+	return metric.MustCreate(haEnabledDesc, ha, labelValues)
+}
+
+func (c *VMCollector) guestAgentUpMetric(vm *VM, labelValues []string) prometheus.Metric {
+	var up float64
+	if vm.GuestOperatingSystem.Family != "" {
+		up = 1
+	}
+
+	return metric.MustCreate(guestAgentUpDesc, up, labelValues)
+}
+
+func (c *VMCollector) nextRunConfigExistsMetric(vm *VM, labelValues []string) prometheus.Metric {
+	var exists float64
+	if vm.NextRunConfigurationExists {
+		exists = 1
+	}
+
+	return metric.MustCreate(nextRunConfigExistsDesc, exists, labelValues)
 }
 
 func (c *VMCollector) collectSnapshotMetrics(ctx context.Context, vm *VM, l []string) {
