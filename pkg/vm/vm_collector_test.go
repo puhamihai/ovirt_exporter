@@ -50,7 +50,7 @@ func TestSnapshotFanOutIsBoundedAndReauthenticatesOnce(t *testing.T) {
 		token = fmt.Sprintf("token-%d", seq)
 		tok := token
 		mu.Unlock()
-		json.NewEncoder(w).Encode(map[string]string{"access_token": tok, "token_type": "bearer"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"access_token": tok, "token_type": "bearer"})
 	})
 	mux.HandleFunc("/ovirt-engine/api/", func(w http.ResponseWriter, r *http.Request) {
 		n := inFlight.Add(1)
@@ -83,20 +83,20 @@ func TestSnapshotFanOutIsBoundedAndReauthenticatesOnce(t *testing.T) {
 
 		switch {
 		case path == "vms":
-			fmt.Fprint(w, "<vms>")
+			_, _ = fmt.Fprint(w, "<vms>")
 			for i := 0; i < numVMs; i++ {
-				fmt.Fprintf(w, `<vm id="vm%d"><name>vm%d</name><status>up</status><host id="h1"/><cluster id="c1"/></vm>`, i, i)
+				_, _ = fmt.Fprintf(w, `<vm id="vm%d"><name>vm%d</name><status>up</status><host id="h1"/><cluster id="c1"/></vm>`, i, i)
 			}
-			fmt.Fprint(w, "</vms>")
+			_, _ = fmt.Fprint(w, "</vms>")
 		case strings.HasSuffix(path, "/snapshots"):
-			fmt.Fprint(w, `<snapshots>
+			_, _ = fmt.Fprint(w, `<snapshots>
 				<snapshot id="active"><date>2026-01-02T07:00:00Z</date></snapshot>
 				<snapshot id="s1"><date>2026-09-01T07:00:00Z</date></snapshot>
 			</snapshots>`)
 		case path == "clusters/c1":
-			fmt.Fprint(w, `<cluster id="c1"><name>cluster1</name></cluster>`)
+			_, _ = fmt.Fprint(w, `<cluster id="c1"><name>cluster1</name></cluster>`)
 		case path == "hosts/h1":
-			fmt.Fprint(w, `<host id="h1"><name>kvm01</name></host>`)
+			_, _ = fmt.Fprint(w, `<host id="h1"><name>kvm01</name></host>`)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}

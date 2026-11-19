@@ -79,11 +79,11 @@ func (e *fakeEngine) handleToken(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if e.failLogins.Load() || r.PostForm.Get("password") != "secret" {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error_code": "access_denied", "error": "Cannot authenticate user"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error_code": "access_denied", "error": "Cannot authenticate user"})
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{"access_token": e.issue(), "token_type": "bearer", "scope": "ovirt-app-api"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"access_token": e.issue(), "token_type": "bearer", "scope": "ovirt-app-api"})
 }
 
 func (e *fakeEngine) handleAPI(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +131,7 @@ func (e *fakeEngine) handleAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/xml")
-	fmt.Fprintf(w, `<vm id="%s"><name>vm</name></vm>`, strings.TrimPrefix(r.URL.Path, "/ovirt-engine/api/"))
+	_, _ = fmt.Fprintf(w, `<vm id="%s"><name>vm</name></vm>`, strings.TrimPrefix(r.URL.Path, "/ovirt-engine/api/"))
 }
 
 type testVM struct {

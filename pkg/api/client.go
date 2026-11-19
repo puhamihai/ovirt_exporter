@@ -325,7 +325,7 @@ func (c *Client) send(ctx context.Context, method, uri string, body []byte) (int
 	if err != nil {
 		return 0, nil, 0, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -504,7 +504,7 @@ func (c *Client) loginOAuth(ctx context.Context) (string, time.Time, error) {
 	if err != nil {
 		return "", time.Time{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -568,8 +568,8 @@ func (c *Client) loginSession(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
+	defer func() { _ = resp.Body.Close() }()
+	_, _ = io.Copy(io.Discard, resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("session login: %s", resp.Status)
@@ -624,6 +624,6 @@ func (c *Client) Close() {
 		c.logger.Errorf("could not close oVirt API session: %v", err)
 		return
 	}
-	io.Copy(io.Discard, resp.Body)
-	resp.Body.Close()
+	_, _ = io.Copy(io.Discard, resp.Body)
+	_ = resp.Body.Close()
 }

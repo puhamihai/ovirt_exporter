@@ -32,7 +32,7 @@ func TestDiskMetricsUseTwoRequestsAndJoinOnDiskID(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ovirt-engine/sso/oauth/token", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]string{"access_token": "tok", "token_type": "bearer"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"access_token": "tok", "token_type": "bearer"})
 	})
 	mux.HandleFunc("/ovirt-engine/api/", func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/ovirt-engine/api/")
@@ -40,40 +40,40 @@ func TestDiskMetricsUseTwoRequestsAndJoinOnDiskID(t *testing.T) {
 		requests[path]++
 		mu.Unlock()
 
-		switch {
-		case path == "vms":
+		switch path {
+		case "vms":
 			if r.URL.Query().Get("follow") != "disk_attachments" {
 				t.Errorf("GET vms without follow=disk_attachments: %q", r.URL.RawQuery)
 			}
-			fmt.Fprint(w, "<vms>")
+			_, _ = fmt.Fprint(w, "<vms>")
 			for i := 0; i < numVMs; i++ {
 				// two disks on every VM; VM 0 also references a disk /disks does not know
-				fmt.Fprintf(w, `<vm id="vm%d"><name>vm%d</name><status>up</status><host id="h1"/><cluster id="c1"/>
+				_, _ = fmt.Fprintf(w, `<vm id="vm%d"><name>vm%d</name><status>up</status><host id="h1"/><cluster id="c1"/>
 				  <disk_attachments>
 				    <disk_attachment id="d%d-boot"><bootable>true</bootable><logical_name>/dev/sda</logical_name><disk id="d%d-boot"/></disk_attachment>
 				    <disk_attachment id="d%d-data"><bootable>false</bootable><logical_name>/dev/sdb</logical_name><disk id="d%d-data"/></disk_attachment>`, i, i, i, i, i, i)
 				if i == 0 {
-					fmt.Fprint(w, `<disk_attachment id="ghost"><disk id="ghost"/></disk_attachment>`)
+					_, _ = fmt.Fprint(w, `<disk_attachment id="ghost"><disk id="ghost"/></disk_attachment>`)
 				}
-				fmt.Fprint(w, `</disk_attachments></vm>`)
+				_, _ = fmt.Fprint(w, `</disk_attachments></vm>`)
 			}
-			fmt.Fprint(w, "</vms>")
-		case path == "disks":
-			fmt.Fprint(w, "<disks>")
+			_, _ = fmt.Fprint(w, "</vms>")
+		case "disks":
+			_, _ = fmt.Fprint(w, "<disks>")
 			for i := 0; i < numVMs; i++ {
 				// boot: thin qcow2 at vdsm's 1.1x ceiling; data: raw preallocated
-				fmt.Fprintf(w, `<disk id="d%d-boot"><name>boot%d</name><alias>boot%d</alias><provisioned_size>128849018880</provisioned_size><actual_size>141733920768</actual_size><total_size>141733920768</total_size><format>cow</format><sparse>true</sparse><storage_type>image</storage_type><storage_domains><storage_domain id="sd1"/></storage_domains></disk>`, i, i, i)
-				fmt.Fprintf(w, `<disk id="d%d-data"><name>data%d</name><alias>data%d</alias><provisioned_size>107374182400</provisioned_size><actual_size>107374182400</actual_size><total_size>107374182400</total_size><format>raw</format><sparse>false</sparse><storage_type>image</storage_type><storage_domains><storage_domain id="sd1"/></storage_domains></disk>`, i, i, i)
+				_, _ = fmt.Fprintf(w, `<disk id="d%d-boot"><name>boot%d</name><alias>boot%d</alias><provisioned_size>128849018880</provisioned_size><actual_size>141733920768</actual_size><total_size>141733920768</total_size><format>cow</format><sparse>true</sparse><storage_type>image</storage_type><storage_domains><storage_domain id="sd1"/></storage_domains></disk>`, i, i, i)
+				_, _ = fmt.Fprintf(w, `<disk id="d%d-data"><name>data%d</name><alias>data%d</alias><provisioned_size>107374182400</provisioned_size><actual_size>107374182400</actual_size><total_size>107374182400</total_size><format>raw</format><sparse>false</sparse><storage_type>image</storage_type><storage_domains><storage_domain id="sd1"/></storage_domains></disk>`, i, i, i)
 			}
 			// an unattached disk must not produce a series
-			fmt.Fprint(w, `<disk id="orphan"><name>orphan</name><alias>orphan</alias><provisioned_size>1</provisioned_size><actual_size>1</actual_size><total_size>1</total_size><format>cow</format><sparse>true</sparse></disk>`)
-			fmt.Fprint(w, "</disks>")
-		case path == "storagedomains/sd1":
-			fmt.Fprint(w, `<storage_domain id="sd1"><name>data1</name></storage_domain>`)
-		case path == "clusters/c1":
-			fmt.Fprint(w, `<cluster id="c1"><name>cluster1</name></cluster>`)
-		case path == "hosts/h1":
-			fmt.Fprint(w, `<host id="h1"><name>kvm01</name></host>`)
+			_, _ = fmt.Fprint(w, `<disk id="orphan"><name>orphan</name><alias>orphan</alias><provisioned_size>1</provisioned_size><actual_size>1</actual_size><total_size>1</total_size><format>cow</format><sparse>true</sparse></disk>`)
+			_, _ = fmt.Fprint(w, "</disks>")
+		case "storagedomains/sd1":
+			_, _ = fmt.Fprint(w, `<storage_domain id="sd1"><name>data1</name></storage_domain>`)
+		case "clusters/c1":
+			_, _ = fmt.Fprint(w, `<cluster id="c1"><name>cluster1</name></cluster>`)
+		case "hosts/h1":
+			_, _ = fmt.Fprint(w, `<host id="h1"><name>kvm01</name></host>`)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
