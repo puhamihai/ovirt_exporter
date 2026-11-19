@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/czerwonk/ovirt_api/api"
+	"github.com/czerwonk/ovirt_exporter/pkg/api"
 	"github.com/czerwonk/ovirt_exporter/pkg/cluster"
 	"github.com/czerwonk/ovirt_exporter/pkg/collector"
 	"github.com/czerwonk/ovirt_exporter/pkg/datacenter"
@@ -37,6 +37,8 @@ var (
 	apiPass                  = flag.String("api.password", "", "API password")
 	apiPassFile              = flag.String("api.password-file", "", "File containing the API password")
 	apiInsecureCert          = flag.Bool("api.insecure-cert", false, "Skip verification for untrusted SSL/TLS certificates")
+	apiAuthMethod            = flag.String("api.auth-method", string(api.AuthOAuth), "How to authenticate against the engine: \"oauth\" (SSO bearer token) or \"session\" (HTTP Basic once, then the persistent-auth JSESSIONID cookie)")
+	apiMaxConcurrentRequests = flag.Int("api.max-concurrent-requests", api.DefaultMaxConcurrentRequests, "Maximum number of API requests in flight to the engine at once, shared by all collectors (bounds the per-VM/per-host fan-out)")
 	withVMs                  = flag.Bool("with-vms", true, "Collect VM metrics")
 	withHosts                = flag.Bool("with-hosts", true, "Collect host metrics")
 	withStorageDomains       = flag.Bool("with-storage-domains", true, "Collect storage domain metrics")
@@ -145,7 +147,11 @@ func startServer() {
 }
 
 func connectAPI() (*api.Client, error) {
-	opts := []api.ClientOption{api.WithLogger(log.StandardLogger())}
+	opts := []api.ClientOption{
+		api.WithLogger(log.StandardLogger()),
+		api.WithAuthMethod(api.AuthMethod(*apiAuthMethod)),
+		api.WithMaxConcurrentRequests(*apiMaxConcurrentRequests),
+	}
 
 	if *debug {
 		opts = append(opts, api.WithDebug())
@@ -160,12 +166,7 @@ func connectAPI() (*api.Client, error) {
 		return nil, errors.Wrap(err, "error while reading password file")
 	}
 
-	client, err := api.NewClient(*apiURL, *apiUser, pass, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, err
+	return api.NewClient(*apiURL, *apiUser, pass, opts...)
 }
 
 func apiPassword() (string, error) {
