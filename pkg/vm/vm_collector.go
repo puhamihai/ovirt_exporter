@@ -25,21 +25,21 @@ import (
 const prefix = "ovirt_vm_"
 
 var (
-	upDesc              *prometheus.Desc
-	cpuCoresDesc        *prometheus.Desc
-	cpuSocketsDesc      *prometheus.Desc
-	cpuThreadsDesc      *prometheus.Desc
-	snapshotCount       *prometheus.Desc
-	minSnapshotAge      *prometheus.Desc
-	maxSnapshotAge      *prometheus.Desc
-	illegalImages       *prometheus.Desc
-	diskProvisionedSize    *prometheus.Desc
-	diskActualSize         *prometheus.Desc
-	diskTotalSize          *prometheus.Desc
-	haEnabledDesc          *prometheus.Desc
-	guestAgentUpDesc       *prometheus.Desc
+	upDesc                  *prometheus.Desc
+	cpuCoresDesc            *prometheus.Desc
+	cpuSocketsDesc          *prometheus.Desc
+	cpuThreadsDesc          *prometheus.Desc
+	snapshotCount           *prometheus.Desc
+	minSnapshotAge          *prometheus.Desc
+	maxSnapshotAge          *prometheus.Desc
+	illegalImages           *prometheus.Desc
+	diskProvisionedSize     *prometheus.Desc
+	diskActualSize          *prometheus.Desc
+	diskTotalSize           *prometheus.Desc
+	haEnabledDesc           *prometheus.Desc
+	guestAgentUpDesc        *prometheus.Desc
 	nextRunConfigExistsDesc *prometheus.Desc
-	labelNames             []string
+	labelNames              []string
 )
 
 func init() {

@@ -25,7 +25,7 @@ type VM struct {
 			Threads int `xml:"threads"`
 		} `xml:"topology"`
 	} `xml:"cpu"`
-	HasIllegalImages       bool `xml:"has_illegal_images"`
+	HasIllegalImages bool `xml:"has_illegal_images"`
 	HighAvailability struct {
 		Enabled bool `xml:"enabled"`
 	} `xml:"high_availability"`

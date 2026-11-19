@@ -14,27 +14,27 @@ import (
 const prefix = "ovirt_cluster_"
 
 var (
-	upDesc               *prometheus.Desc
-	versionMajorDesc     *prometheus.Desc
-	versionMinorDesc     *prometheus.Desc
-	ballooningDesc       *prometheus.Desc
-	ksmDesc              *prometheus.Desc
-	memoryOvercommitDesc *prometheus.Desc
-	fencingDesc          *prometheus.Desc
-	haReservationDesc    *prometheus.Desc
+	upDesc                *prometheus.Desc
+	versionMajorDesc      *prometheus.Desc
+	versionMinorDesc      *prometheus.Desc
+	ballooningDesc        *prometheus.Desc
+	ksmDesc               *prometheus.Desc
+	memoryOvercommitDesc  *prometheus.Desc
+	fencingDesc           *prometheus.Desc
+	haReservationDesc     *prometheus.Desc
 	upgradeInProgressDesc *prometheus.Desc
 )
 
 func init() {
 	l := []string{"name", "datacenter"}
-	upDesc                = prometheus.NewDesc(prefix+"up", "Cluster data center status: up (1), maintenance (2), or down (0)", l, nil)
-	versionMajorDesc      = prometheus.NewDesc(prefix+"version_major", "Cluster compatibility version major number", l, nil)
-	versionMinorDesc      = prometheus.NewDesc(prefix+"version_minor", "Cluster compatibility version minor number", l, nil)
-	ballooningDesc        = prometheus.NewDesc(prefix+"ballooning_enabled", "Memory ballooning is enabled (1) or not (0)", l, nil)
-	ksmDesc               = prometheus.NewDesc(prefix+"ksm_enabled", "Kernel Same-page Merging (KSM) is enabled (1) or not (0)", l, nil)
-	memoryOvercommitDesc  = prometheus.NewDesc(prefix+"memory_overcommit_percent", "Memory overcommit percentage configured for the cluster", l, nil)
-	fencingDesc           = prometheus.NewDesc(prefix+"fencing_enabled", "Host fencing is enabled (1) or not (0)", l, nil)
-	haReservationDesc     = prometheus.NewDesc(prefix+"ha_reservation", "HA reservation is enabled (1) or not (0) — when 0, VM failover may be impossible", l, nil)
+	upDesc = prometheus.NewDesc(prefix+"up", "Cluster data center status: up (1), maintenance (2), or down (0)", l, nil)
+	versionMajorDesc = prometheus.NewDesc(prefix+"version_major", "Cluster compatibility version major number", l, nil)
+	versionMinorDesc = prometheus.NewDesc(prefix+"version_minor", "Cluster compatibility version minor number", l, nil)
+	ballooningDesc = prometheus.NewDesc(prefix+"ballooning_enabled", "Memory ballooning is enabled (1) or not (0)", l, nil)
+	ksmDesc = prometheus.NewDesc(prefix+"ksm_enabled", "Kernel Same-page Merging (KSM) is enabled (1) or not (0)", l, nil)
+	memoryOvercommitDesc = prometheus.NewDesc(prefix+"memory_overcommit_percent", "Memory overcommit percentage configured for the cluster", l, nil)
+	fencingDesc = prometheus.NewDesc(prefix+"fencing_enabled", "Host fencing is enabled (1) or not (0)", l, nil)
+	haReservationDesc = prometheus.NewDesc(prefix+"ha_reservation", "HA reservation is enabled (1) or not (0) — when 0, VM failover may be impossible", l, nil)
 	upgradeInProgressDesc = prometheus.NewDesc(prefix+"upgrade_in_progress", "Cluster upgrade is in progress (1) or not (0)", l, nil)
 }
 

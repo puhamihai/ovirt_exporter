@@ -20,9 +20,9 @@ var (
 
 func init() {
 	l := []string{"name"}
-	upDesc        = prometheus.NewDesc(prefix+"up", "Data center status: up (1), maintenance (2), or down (0)", l, nil)
+	upDesc = prometheus.NewDesc(prefix+"up", "Data center status: up (1), maintenance (2), or down (0)", l, nil)
 	quotaModeDesc = prometheus.NewDesc(prefix+"quota_mode", "Quota mode: disabled (0), audit (1), enforced (2)", l, nil)
-	localDesc     = prometheus.NewDesc(prefix+"local", "Storage type is local (1) or shared (0)", l, nil)
+	localDesc = prometheus.NewDesc(prefix+"local", "Storage type is local (1) or shared (0)", l, nil)
 }
 
 // DataCenterCollector collects data center statistics from oVirt
