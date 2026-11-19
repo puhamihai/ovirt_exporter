@@ -42,6 +42,7 @@ var (
 	withStorageDomains       = flag.Bool("with-storage-domains", true, "Collect storage domain metrics")
 	withDataCenters          = flag.Bool("with-datacenters", true, "Collect data center metrics")
 	withClusters             = flag.Bool("with-clusters", true, "Collect cluster metrics")
+	withVMStats              = flag.Bool("with-vm-stats", true, "Collect per-VM statistics (CPU%, memory%, etc.) - requires 1 API call per VM")
 	withSnapshots            = flag.Bool("with-snapshots", true, "Collect snapshot metrics (can be time consuming in some cases)")
 	withNetwork              = flag.Bool("with-network", true, "Collect network metrics (can be time consuming in some cases)")
 	withDisks                = flag.Bool("with-disks", true, "Collect disk metrics (can be time consuming in some cases)")
@@ -188,7 +189,7 @@ func handleMetricsRequest(w http.ResponseWriter, r *http.Request, client *api.Cl
 
 	cc := collector.NewContext(tracer, client)
 	if *withVMs {
-		reg.MustRegister(vm.NewCollector(ctx, cc.Clone(), *withSnapshots, *withNetwork, *withDisks, collectorDuration.WithLabelValues("vm")))
+		reg.MustRegister(vm.NewCollector(ctx, cc.Clone(), *withVMStats, *withSnapshots, *withNetwork, *withDisks, collectorDuration.WithLabelValues("vm")))
 	}
 	if *withHosts {
 		reg.MustRegister(host.NewCollector(ctx, cc.Clone(), *withNetwork, collectorDuration.WithLabelValues("host")))

@@ -68,6 +68,7 @@ type VMCollector struct {
 	cc               *collector.CollectorContext
 	collectDuration  prometheus.Observer
 	metrics          []prometheus.Metric
+	collectStats     bool
 	collectSnapshots bool
 	collectNetwork   bool
 	collectDisks     bool
@@ -76,9 +77,10 @@ type VMCollector struct {
 }
 
 // NewCollector creates a new collector
-func NewCollector(ctx context.Context, cc *collector.CollectorContext, collectSnaphots, collectNetwork bool, collectDisks bool, collectDuration prometheus.Observer) prometheus.Collector {
+func NewCollector(ctx context.Context, cc *collector.CollectorContext, collectStats, collectSnaphots, collectNetwork bool, collectDisks bool, collectDuration prometheus.Observer) prometheus.Collector {
 	return &VMCollector{
 		cc:               cc,
+		collectStats:     collectStats,
 		collectSnapshots: collectSnaphots,
 		collectNetwork:   collectNetwork,
 		collectDisks:     collectDisks,
@@ -171,8 +173,10 @@ func (c *VMCollector) collectForVM(ctx context.Context, vm VM, wg *sync.WaitGrou
 
 	c.collectCPUMetrics(v, l)
 
-	statPath := fmt.Sprintf("vms/%s/statistics", vm.ID)
-	statistic.CollectMetrics(ctx, statPath, prefix, labelNames, l, c.cc)
+	if c.collectStats {
+		statPath := fmt.Sprintf("vms/%s/statistics", vm.ID)
+		statistic.CollectMetrics(ctx, statPath, prefix, labelNames, l, c.cc)
+	}
 
 	if c.collectNetwork {
 		networkPath := fmt.Sprintf("vms/%s/nics", vm.ID)
