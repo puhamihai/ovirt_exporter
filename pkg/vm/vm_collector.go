@@ -26,6 +26,7 @@ const prefix = "ovirt_vm_"
 
 var (
 	upDesc                  *prometheus.Desc
+	statusDesc              *prometheus.Desc
 	cpuCoresDesc            *prometheus.Desc
 	cpuSocketsDesc          *prometheus.Desc
 	cpuThreadsDesc          *prometheus.Desc
@@ -40,11 +41,18 @@ var (
 	guestAgentUpDesc        *prometheus.Desc
 	nextRunConfigExistsDesc *prometheus.Desc
 	labelNames              []string
+	statusLabelNames        []string
 )
 
 func init() {
 	labelNames = []string{"name", "host", "cluster"}
 	upDesc = prometheus.NewDesc(prefix+"up", "VM is running (1) or not (0)", labelNames, nil)
+	// ovirt_vm_up is 0 for every state but "up", so it cannot tell a VM the
+	// engine paused on a storage error (status "paused") from one that is simply
+	// powered off ("down"). statusDesc exposes the engine's raw status string as
+	// an info metric so a rule can target one state, like ovirt_host_status.
+	statusLabelNames = append(append([]string{}, labelNames...), "status")
+	statusDesc = prometheus.NewDesc(prefix+"status", "Raw VM status reported by the engine; always 1, with the state in the \"status\" label", statusLabelNames, nil)
 	cpuCoresDesc = prometheus.NewDesc(prefix+"cpu_cores", "Number of CPU cores assigned", labelNames, nil)
 	cpuSocketsDesc = prometheus.NewDesc(prefix+"cpu_sockets", "Number of sockets", labelNames, nil)
 	cpuThreadsDesc = prometheus.NewDesc(prefix+"cpu_threads", "Number of threads", labelNames, nil)
@@ -194,6 +202,7 @@ func (c *VMCollector) collectForVM(ctx context.Context, vm VM, wg *sync.WaitGrou
 
 	c.cc.RecordMetrics(
 		c.upMetric(v, l),
+		c.statusMetric(v, l),
 		c.diskImageIllegalMetric(v, l),
 		c.haEnabledMetric(v, l),
 		c.guestAgentUpMetric(v, l),
@@ -248,6 +257,19 @@ func (c *VMCollector) upMetric(vm *VM, labelValues []string) prometheus.Metric {
 	}
 
 	return metric.MustCreate(upDesc, up, labelValues)
+}
+
+// statusMetric emits the engine's raw VM status (up, down, paused, suspended,
+// not_responding, migrating, unknown, ...) as an info-style metric: the value
+// is always 1 and the state travels in the "status" label.
+func (c *VMCollector) statusMetric(vm *VM, labelValues []string) prometheus.Metric {
+	status := vm.Status
+	if status == "" {
+		status = "unknown"
+	}
+	l := append(append([]string{}, labelValues...), status)
+
+	return metric.MustCreate(statusDesc, 1, l)
 }
 
 func (c *VMCollector) diskImageIllegalMetric(vm *VM, labelValues []string) prometheus.Metric {
