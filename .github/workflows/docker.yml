@@ -10,11 +10,15 @@ on:
     branches:
       - main
 
+# Pull requests only build the image. Pushes to main and version tags publish
+# it to ghcr.io/<owner>/ovirt_exporter with the workflow token. No Docker Hub
+# image is set, so no Docker Hub credentials are needed. The reusable job asks
+# for these permissions, and a caller can only grant what it has itself.
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
 jobs:
   docker:
     uses: czerwonk/go-ci/.github/workflows/docker-publish.yml@v1
-    with:
-      dockerhub-image: czerwonk/ovirt_exporter
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}

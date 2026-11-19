@@ -1,3 +1,10 @@
+version: 2
+
+# Archive names are ovirt_exporter_<version>_<os>_<arch>.tar.gz. Pinned here
+# because GoReleaser otherwise derives the name from the git remote, which
+# differs between clones and forks, and deployments download by exact name.
+project_name: ovirt_exporter
+
 dist: artifacts
 before:
    hooks:
@@ -14,4 +21,12 @@ builds:
     - arm
     - arm64
     ldflags: -s -w -X main.version={{.Version}}
-    binary: ovirt_exporter 
+    binary: ovirt_exporter
+
+release:
+  # Publishing a release in the GitHub UI creates the tag, which starts
+  # release.yml, so GoReleaser then runs against a release that already exists.
+  # keep-existing keeps the hand-written notes and only attaches the builds.
+  # It is the current default for that case; pinning it means a change of
+  # default can never overwrite the notes.
+  mode: keep-existing

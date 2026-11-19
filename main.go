@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	rtdebug "runtime/debug"
 	"strings"
 	"time"
 
@@ -26,7 +27,30 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const version string = "0.10.3"
+// version is set at build time with -X main.version=<version>: .goreleaser.yml
+// passes the release tag without its "v", the Dockerfile passes its VERSION
+// build argument. It must be a var, because -X cannot override a const.
+// Builds that set nothing fall back to the version the Go toolchain stamps
+// from the module's VCS tag (see resolveVersion).
+var version = "dev"
+
+func init() {
+	bi, ok := rtdebug.ReadBuildInfo()
+	version = resolveVersion(version, bi, ok)
+}
+
+// resolveVersion keeps a version injected with -X. Otherwise it uses the main
+// module version from the build info, without its "v" prefix so both paths
+// print the same string. It returns "dev" when neither is known.
+func resolveVersion(injected string, bi *rtdebug.BuildInfo, ok bool) string {
+	if injected != "" && injected != "dev" {
+		return injected
+	}
+	if ok && bi != nil && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
+		return strings.TrimPrefix(bi.Main.Version, "v")
+	}
+	return "dev"
+}
 
 var (
 	showVersion              = flag.Bool("version", false, "Print version information.")
