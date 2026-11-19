@@ -37,4 +37,6 @@ type VM struct {
 	} `xml:"guest_operating_system"`
 	NextRunConfigurationExists bool   `xml:"next_run_configuration_exists"`
 	Fqdn                       string `xml:"fqdn"`
+	// populated only by GET /vms?follow=disk_attachments
+	DiskAttachments DiskAttachments `xml:"disk_attachments"`
 }
