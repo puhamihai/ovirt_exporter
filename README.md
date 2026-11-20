@@ -64,6 +64,35 @@ engine. Exporter run end to end against the small engine with snapshots off: 0.1
 14.3 s per scrape, 0.14.0 1.5 s, which is also what a scrape without disk metrics takes; on
 the large engine 4.97 s without disk metrics, 6.71 s with.
 
+## Storage domain and VM state
+`ovirt_storage_up` follows the storage domain's state **in its data center**: active `1`,
+maintenance / preparing for maintenance `2`, anything else (inactive, locked, unknown,
+activating, detaching, mixed) `0`. A domain attached to several data centers reports the
+worst of them. An unattached domain has no data-center state and keeps the old encoding
+(`external_status` `ok` is `1`), so a deliberately detached domain is not a permanent alert.
+
+Previously the value came from `external_status`, which is the health an external provider
+plug-in would report and stays `ok` on an engine without one. An engine that deactivated a
+data domain because no host could see its LUNs, and paused the VMs on it, still reported
+`ovirt_storage_up` `1` for that domain. The system-scope
+`GET /storagedomains` carries no `status` element for an attached domain; the state only
+exists in `GET /datacenters/{id}/storagedomains`, so the collector adds one request for the
+data center list plus one per data center (fetched in parallel) to every scrape.
+
+Two info metrics expose the engine's raw state strings, value always `1`:
+
+* `ovirt_storage_status{name,type,path,datacenter,status}`, one series per data center the
+  domain is attached to (`datacenter=""` and `status="unattached"` for an unattached one).
+* `ovirt_vm_status{name,host,cluster,status}` (`up`, `down`, `paused`, `suspended`,
+  `not_responding`, `migrating`, `unknown`, ...). `ovirt_vm_up` is `0` for both a VM the
+  engine paused on a storage error and one that is simply powered off; a rule for "VM paused
+  on storage error" is `ovirt_vm_status{status="paused"} == 1`.
+
+They mirror `ovirt_host_status`. If a data center's listing fails during a scrape, the
+domains attached to it get no `ovirt_storage_up` series for that scrape (their state is
+unknown, and the old value would have said "up") while their capacity series and the states
+that were fetched are still emitted.
+
 ## Third Party Components
 
 This software uses components of the following projects
