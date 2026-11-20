@@ -5,6 +5,13 @@ on:
     tags:
       - "v*.*.*"
 
+# The reusable job asks for contents: write to create the release and upload
+# the archives, and a caller can only grant what it has itself. A new
+# repository's default token is read-only, so without this block GitHub
+# refuses to start the run (startup_failure).
+permissions:
+  contents: write
+
 jobs:
   release:
     uses: czerwonk/go-ci/.github/workflows/release.yml@v1
