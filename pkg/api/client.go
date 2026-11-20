@@ -231,7 +231,9 @@ func newClient(apiURL, username, password string, opts ...ClientOption) (*Client
 		tr := http.DefaultTransport.(*http.Transport).Clone()
 		tr.MaxIdleConnsPerHost = c.maxRequests
 		if c.insecure {
-			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			// Only with -api.insecure-cert (WithInsecure), for engines with a
+			// self-signed certificate; verification is on by default.
+			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12} // #nosec G402 -- explicit operator opt-in
 		}
 		c.httpClient = &http.Client{Transport: tr}
 	}
@@ -394,7 +396,7 @@ func (c *Client) reauthenticate(ctx context.Context, staleGen uint64) (string, u
 		c.credential = ""
 		call = &loginCall{done: make(chan struct{})}
 		c.inflight = call
-		go c.runLogin(call)
+		go c.runLogin(context.WithoutCancel(ctx), call)
 	}
 	c.mu.Unlock()
 
@@ -413,10 +415,13 @@ func (c *Client) reauthenticate(ctx context.Context, staleGen uint64) (string, u
 	return c.credential, c.generation, nil
 }
 
-// runLogin performs the login for a loginCall. It does not use any caller's
-// context: one scrape being cancelled must not fail the login for everybody.
-func (c *Client) runLogin(call *loginCall) {
-	ctx, cancel := context.WithTimeout(context.Background(), c.loginTimeout)
+// runLogin performs the login for a loginCall. It gets the triggering
+// caller's context without its cancellation or deadline (context.WithoutCancel):
+// one scrape being cancelled must not fail the login for everybody waiting on
+// it, and loginTimeout is the only limit. The caller's values are kept, though
+// nothing in the login reads them today.
+func (c *Client) runLogin(parent context.Context, call *loginCall) {
+	ctx, cancel := context.WithTimeout(parent, c.loginTimeout)
 	defer cancel()
 
 	cred, expiry, err := c.login(ctx)
