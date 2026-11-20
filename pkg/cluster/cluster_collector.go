@@ -71,13 +71,41 @@ func (c *ClusterCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
+	// Each data center is fetched once per scrape, and its name and status are
+	// read from that one response. The status must never be cached across
+	// scrapes: ovirt_cluster_up would then keep the first scrape's value for
+	// the life of the process and never report a data center going down.
+	dcs := make(map[string]*datacenter.DataCenter)
 	for _, cl := range clusters.Clusters {
-		dcName := datacenter.Name(ctx, cl.DataCenter.ID, c.cc.Client())
-		dcStatus := datacenter.Status(ctx, cl.DataCenter.ID, c.cc.Client())
+		id := cl.DataCenter.ID
+		if _, seen := dcs[id]; seen || id == "" {
+			continue
+		}
+		dc, err := datacenter.Get(ctx, id, c.cc.Client())
+		if err != nil {
+			c.cc.HandleError(err, span)
+		}
+		dcs[id] = dc // nil when the lookup failed
+	}
+
+	for _, cl := range clusters.Clusters {
+		dc := dcs[cl.DataCenter.ID]
+		if dc == nil && cl.DataCenter.ID != "" {
+			// The data center lookup failed (logged above). Skip the cluster
+			// for this scrape: emitting its series with datacenter="" would
+			// break their continuity, and reporting it as down would be wrong.
+			continue
+		}
+		dcName := ""
+		if dc != nil {
+			dcName = dc.Name
+		}
 		l := []string{cl.Name, dcName}
 
+		if dc != nil {
+			c.cc.RecordMetrics(metric.MustCreate(upDesc, dcStatusToFloat(dc.Status), l))
+		}
 		c.cc.RecordMetrics(
-			metric.MustCreate(upDesc, dcStatusToFloat(dcStatus), l),
 			metric.MustCreate(versionMajorDesc, float64(cl.Version.Major), l),
 			metric.MustCreate(versionMinorDesc, float64(cl.Version.Minor), l),
 			metric.MustCreate(ballooningDesc, boolToFloat(cl.BallooningEnabled), l),
